@@ -1,0 +1,146 @@
+import java.sql.*;
+import java.util.Scanner;
+
+public class SistemaCarro {
+    private static final String URL = "jdbc:postgresql://127.0.0.1:5432/SistemaCarro";
+    private static final String USUARIO = "postgres";
+    private static final String SENHA = "asds";
+    private static final Scanner scanner = new Scanner(System.in);
+
+    private static void cadastrarCarro(Connection connection) throws SQLException {
+        System.out.println("\nCADASTRAR CARRO");
+        System.out.print("Marca: ");
+        String marca = scanner.nextLine();
+        System.out.print("Modelo: ");
+        String modelo = scanner.nextLine();
+        System.out.print("Ano: ");
+        int ano = Integer.parseInt(scanner.nextLine());
+
+        String insertQuery = "INSERT INTO tabela_cadastro (marca, modelo, ano) VALUES (?, ?, ?)";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
+            preparedStatement.setString(1, marca);
+            preparedStatement.setString(2, modelo);
+            preparedStatement.setInt(3, ano);
+            preparedStatement.executeUpdate();
+            System.out.println("Carro cadastrado com sucesso.");
+        }
+    }
+
+    private static void lerCarros(Connection connection, boolean ordenarPorAno) throws SQLException {
+        String selectQuery = "SELECT * FROM tabela_cadastro";
+        if (ordenarPorAno) {
+            selectQuery += " ORDER BY ano";
+        }
+        try (Statement statement = connection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery(selectQuery);
+            System.out.println("\nCARROS ENCONTRADOS:");
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String marca = resultSet.getString("marca");
+                String modelo = resultSet.getString("modelo");
+                int ano = resultSet.getInt("ano");
+                System.out.println("ID: " + id + ", Marca: " + marca + ", Modelo: " + modelo + ", Ano: " + ano);
+            }
+        }
+    }
+
+    private static void atualizarCarro(Connection connection) throws SQLException {
+        System.out.println("\nATUALIZAR CARRO");
+        System.out.print("Informe o ID do carro que deseja atualizar: ");
+        int id = Integer.parseInt(scanner.nextLine());
+        System.out.print("Nova marca: ");
+        String novaMarca = scanner.nextLine();
+        System.out.print("Novo modelo: ");
+        String novoModelo = scanner.nextLine();
+        System.out.print("Novo ano: ");
+        int novoAno = Integer.parseInt(scanner.nextLine());
+
+        String updateQuery = "UPDATE tabela_cadastro SET marca = ?, modelo = ?, ano = ? WHERE id = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+            preparedStatement.setString(1, novaMarca);
+            preparedStatement.setString(2, novoModelo);
+            preparedStatement.setInt(3, novoAno);
+            preparedStatement.setInt(4, id);
+            preparedStatement.executeUpdate();
+            System.out.println("Carro atualizado com sucesso.");
+        }
+    }
+
+    private static void deletarCarro(Connection connection) throws SQLException {
+        System.out.println("\nDELETAR CARRO");
+        System.out.print("Informe o ID do carro que deseja deletar: ");
+        int id = Integer.parseInt(scanner.nextLine());
+
+        String deleteQuery = "DELETE FROM tabela_cadastro WHERE id = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
+            preparedStatement.setInt(1, id);
+            preparedStatement.executeUpdate();
+            System.out.println("Carro deletado com sucesso.");
+        }
+    }
+
+    public static void main(String[] args) {
+        try (Connection connection = DriverManager.getConnection(URL, USUARIO, SENHA)) {
+            System.out.println("Conexão com o banco de dados estabelecida.");
+
+            
+            String createTableQuery = "CREATE TABLE IF NOT EXISTS tabela_cadastro (" +
+                    "id SERIAL PRIMARY KEY," +
+                    "marca VARCHAR(50) NOT NULL," +
+                    "modelo VARCHAR(50) NOT NULL," +
+                    "ano INT)";
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate(createTableQuery);
+                System.out.println("Tabela criada com sucesso.");
+
+                
+                String alterTableQuery = "ALTER TABLE tabela_cadastro ADD COLUMN IF NOT EXISTS id SERIAL PRIMARY KEY";
+                statement.executeUpdate(alterTableQuery);
+                System.out.println("Coluna id adicionada com sucesso.");
+            }
+
+            
+            boolean sair = false;
+            while (!sair) {
+                System.out.println("\nMENU");
+                System.out.println("1. Cadastrar carro");
+                System.out.println("2. Ler carros (sem ordenação)");
+                System.out.println("3. Ler carros (ordenados por ano)");
+                System.out.println("4. Atualizar carro");
+                System.out.println("5. Deletar carro");
+                System.out.println("6. Sair");
+                System.out.print("Selecione a opção desejada: ");
+                int opcao = Integer.parseInt(scanner.nextLine());
+
+                switch (opcao) {
+                    case 1:
+                        cadastrarCarro(connection);
+                        break;
+                    case 2:
+                        lerCarros(connection, false);
+                        break;
+                    case 3:
+                        lerCarros(connection, true);
+                        break;
+                    case 4:
+                        atualizarCarro(connection);
+                        break;
+                    case 5:
+                        deletarCarro(connection);
+                        break;
+                    case 6:
+                        sair = true;
+                        break;
+                    default:
+                        System.out.println("Opção inválida. Tente novamente.");
+                        break;
+                }
+            }
+
+            System.out.println("Encerrando o programa...");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
